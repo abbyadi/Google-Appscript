@@ -281,14 +281,8 @@ function ruralSort(){
         sACounter.set('Native American', x - row[3]);
         sACounter.set('Rural', y - row[3]);
       } else if (chkRrlHTisNeg(row) === true) { //true means there is less than $1 and Hsg type is negative
-        if(chkRestofData(row, inputSheet) === true) {
-          chkRrlHTAndSetCounters(row);
-          inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
-          ss.getSheetByName('Funded Projects').appendRow(row);
-          let x = sACounter.get('Native American');
-          let y = sACounter.get('Rural');
-          sACounter.set('Native American', x - row[3]);
-          sACounter.set('Rural', y - row[3]);
+        if(chkRestofData(row, inputSheet) === true) { //checks rest of data set and inputs "skip HT" if it finds project with a different Hsg type and same or higher score. Assuming to check all rural projects and not just Native American projects for different H/T.
+          inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
         } else if (chkRestofData(row, inputSheet) === 'Fund H/T') {
           let lastColInt = row.length;
           inputSheet.createTextFinder(row[0]).findNext().offset(0,lastColInt-1).setValue('Skip H/T');
@@ -326,14 +320,8 @@ function ruralSort(){
         sACounter.set('RHS & HOME Apportionment', x - row[3]);
         sACounter.set('Rural', y - row[3]);
       } else if (chkRrlHTisNeg(row) === true) { //true means there is less than $1 and Hsg type is negative
-        if(chkRestofData(row, inputSheet) === true) {
-          chkRrlHTAndSetCounters(row);
-          inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
-          ss.getSheetByName('Funded Projects').appendRow(row);
-          let x = sACounter.get('RHS & HOME Apportionment');
-          let y = sACounter.get('Rural');
-          sACounter.set('RHS & HOME Apportionment', x - row[3]);
-          sACounter.set('Rural', y - row[3]);
+        if(chkRestofData(row, inputSheet) === true) { //checks rest of data set and inputs "skip HT" if it finds project with a different Hsg type and same or higher score. Assuming to check all rural projects and not just RHS projects for different H/T.
+          inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
         } else if (chkRestofData(row, inputSheet) === 'Fund H/T') {
           let lastColInt = row.length;
           inputSheet.createTextFinder(row[0]).findNext().offset(0,lastColInt-1).setValue('Skip H/T');
@@ -375,12 +363,8 @@ function ruralOtherSort(){
         let x = sACounter.get('Rural');
         sACounter.set('Rural', x - row[3]);
       } else if (chkRrlHTisNeg(row) === true) { //true means there is less than $1 and Hsg type is negative
-        if(chkRestofData(row, inputSheet) === true) {
-          chkRrlHTAndSetCounters(row);
-          inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
-          ss.getSheetByName('Funded Projects').appendRow(row);
-          let x = sACounter.get('Rural');
-          sACounter.set('Rural', x - row[3]);
+        if(chkRestofData(row, inputSheet) === true) { //checks rest of data set and inputs "skip HT" if it finds project with a different Hsg type and same or higher score.
+          inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
         } else if (chkRestofData(row, inputSheet) === 'Fund H/T') {
           let lastColInt = row.length;
           inputSheet.createTextFinder(row[0]).findNext().offset(0,lastColInt-1).setValue('Skip H/T');
@@ -470,7 +454,7 @@ function chkRestofData(row, sheet) {
   let index = sheet.createTextFinder(row[0]).findNext().getRow()-1;
   let count = index+1;
   let arrRow = sheet.getDataRange().getValues();
-  console.log(index)
+  console.log(index, count)
   while (count <= arrRow.length) {
     if(count===arrRow.length){
       return 'Fund H/T'; //Fund H/T here means the row being evaluated is the last one in the data set and hence can be funded.
@@ -480,7 +464,7 @@ function chkRestofData(row, sheet) {
           //sheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
           return true;
         }
-      } else if (arrRow[count][2] === 'Large Family' && arrRow[count] === 'Yes') {
+      } else if (arrRow[count][2] === 'Large Family' && arrRow[count][14] === 'Yes') {
         if (row[2] !== 'Large Family' && row[14] !== 'Yes') {
           //sheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
           return true;
