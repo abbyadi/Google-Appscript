@@ -267,41 +267,12 @@ function ruralSort(){
   inputSheet.unhideColumn(inputSheet.getRange('O1:O'));
   dataRange.offset(2,0).sort([{column: 7, ascending: false},{column: 8, ascending: false}]);
   let dataRangeValues = dataRange.getValues();
-  //Fund RHS HOME Apportionment
-  let sectionRegEx = new RegExp('Section','i');
-  let homeRegex = new RegExp('HOME');
-  let rhsAmValues = dataRangeValues.filter(item => sectionRegEx.test(item[8]) || homeRegex.test(item[8])); //Filtering for RHS and HOME  projects
-  rhsAmValues.forEach((row, i, arr) => {
-    if (sACounter.get('RHS & HOME Apportionment') >= 1 && sACounter.get('Rural') >= 1) { //Checking if there is more than $1 in RHS & HOME credit counter and in Rural Counter.
-      if (chkRrlHTisNeg(row) === false) { //false means there is more than $1 and Hsg type is not negative
-        chkRrlHTAndSetCounters(row);
-        inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
-        ss.getSheetByName('Funded Projects').appendRow(row);
-        let x = sACounter.get('RHS & HOME Apportionment');
-        let y = sACounter.get('Rural');
-        sACounter.set('RHS & HOME Apportionment', x - row[3]);
-        sACounter.set('Rural', y - row[3]);
-      } else if (chkRrlHTisNeg(row) === true) { //true means there is less than $1 and Hsg type is negative
-        let count = i+1;
-        if(count === arr.length) { // if the row being evaluated is the last project in the filtered set and funds if true.
-          chkRrlHTAndSetCounters(row);
-          inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').offset(0,-26).getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
-          ss.getSheetByName('Funded Projects').appendRow(row);
-          let x = sACounter.get('RHS & HOME Apportionment');
-          let y = sACounter.get('Rural');
-          sACounter.set('RHS & HOME Apportionment', x - row[3]);
-          sACounter.set('Rural', y - row[3]);
-        } else {
-          chkRestofData(row, arr, i, inputSheet, 'RHS & HOME Apportionment'); //checks rest of data set and inputs "skip HT" if it finds project with a different Hsg type and same or higher score.
-        }
-      }
-    }
-  })
+    //Fund Native American Apportionment
   let nativeAmRegEx = new RegExp('Native American','i');
   let nativeAmValues = dataRangeValues.filter(item => nativeAmRegEx.test(item[8])); //Filtering for Native American  projects
   nativeAmValues.forEach((row, i, arr) => { 
     if (sACounter.get('Native American') >= 1 && sACounter.get('Rural') >= 1) { //Checking if there is more than $1 in Native American credit counter and in Rural Counter.
-      if (chkRrlHTisNeg(row) === false) { //false means there is more than $1 and Hsg type is not negative
+      if (chkRrlHTisNeg(row) === false) { //false means there is more than $1 and Hsg type is not negative or it is not a set-aside type
         chkRrlHTAndSetCounters(row);
         inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
         ss.getSheetByName('Funded Projects').appendRow(row);
@@ -310,8 +281,7 @@ function ruralSort(){
         sACounter.set('Native American', x - row[3]);
         sACounter.set('Rural', y - row[3]);
       } else if (chkRrlHTisNeg(row) === true) { //true means there is less than $1 and Hsg type is negative
-        let count = i+1;
-        if(count === arr.length) { // if the row being evaluated is the last project in the filtered set and funds if true
+        if(chkRestofData(row, inputSheet) === true) {
           chkRrlHTAndSetCounters(row);
           inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
           ss.getSheetByName('Funded Projects').appendRow(row);
@@ -319,12 +289,73 @@ function ruralSort(){
           let y = sACounter.get('Rural');
           sACounter.set('Native American', x - row[3]);
           sACounter.set('Rural', y - row[3]);
-        } else {
-          chkRestofData(row, arr, i, inputSheet, 'Native American') //checks rest of data set and inputs "skip HT" if it finds project with a different Hsg type and same or higher score.
+        } else if (chkRestofData(row, inputSheet) === 'Fund H/T') {
+          let lastColInt = row.length;
+          inputSheet.createTextFinder(row[0]).findNext().offset(0,lastColInt-1).setValue('Skip H/T');
+          let newRangeValues = inputSheet.getDataRange().getValues();
+          let skipHTarr = newRangeValues.filter(item => item[lastColInt-1]==='Skip H/T');
+          skipHTarr.forEach(rowItem =>{
+            if(sACounter.get('Rural') >= 1 && sACounter.get('Native American') >= 1){
+              chkRrlHTAndSetCounters(rowItem);
+              inputSheet.createTextFinder(rowItem[0]).findNext().offset(0, lastColInt-1).setValue('Fund skpdH/T').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
+              ss.getSheetByName('Funded Projects').appendRow(rowItem);
+              let x = sACounter.get('Native American');
+              let y = sACounter.get('Rural');
+              sACounter.set('Native American', x - row[3]);
+              sACounter.set('Rural', y - row[3]);
+            } else {
+              inputSheet.createTextFinder(rowItem[0]).findNext().offset(0,lastColInt-1).setValue('Skip H/T').setHorizontalAlignment('normal');
+            }
+          });
         }
       }
     }
   })
+    //Fund RHS HOME Apportionment
+  let sectionRegEx = new RegExp('Section','i');
+  let homeRegex = new RegExp('HOME');
+  let rhsAmValues = dataRangeValues.filter(item => sectionRegEx.test(item[8]) || homeRegex.test(item[8])); //Filtering for RHS and HOME  projects
+  rhsAmValues.forEach((row, i, arr) => {
+    if (sACounter.get('RHS & HOME Apportionment') >= 1 && sACounter.get('Rural') >= 1) { //Checking if there is more than $1 in RHS & HOME credit counter and in Rural Counter.
+      if (chkRrlHTisNeg(row) === false) { //false means there is more than $1 and Hsg type is not negative or it is not a set-aside type
+        chkRrlHTAndSetCounters(row);
+        inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
+        ss.getSheetByName('Funded Projects').appendRow(row);
+        let x = sACounter.get('RHS & HOME Apportionment');
+        let y = sACounter.get('Rural');
+        sACounter.set('RHS & HOME Apportionment', x - row[3]);
+        sACounter.set('Rural', y - row[3]);
+      } else if (chkRrlHTisNeg(row) === true) { //true means there is less than $1 and Hsg type is negative
+        if(chkRestofData(row, inputSheet) === true) {
+          chkRrlHTAndSetCounters(row);
+          inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
+          ss.getSheetByName('Funded Projects').appendRow(row);
+          let x = sACounter.get('RHS & HOME Apportionment');
+          let y = sACounter.get('Rural');
+          sACounter.set('RHS & HOME Apportionment', x - row[3]);
+          sACounter.set('Rural', y - row[3]);
+        } else if (chkRestofData(row, inputSheet) === 'Fund H/T') {
+          let lastColInt = row.length;
+          inputSheet.createTextFinder(row[0]).findNext().offset(0,lastColInt-1).setValue('Skip H/T');
+          let newRangeValues = inputSheet.getDataRange().getValues();
+          let skipHTarr = newRangeValues.filter(item => item[lastColInt-1]==='Skip H/T');
+          skipHTarr.forEach(rowItem =>{
+            if(sACounter.get('Rural') >= 1 && sACounter.get('RHS & HOME Apportionment') >= 1){
+              chkRrlHTAndSetCounters(rowItem);
+              inputSheet.createTextFinder(rowItem[0]).findNext().offset(0, lastColInt-1).setValue('Fund skpdH/T').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
+              ss.getSheetByName('Funded Projects').appendRow(rowItem);
+              let x = sACounter.get('RHS & HOME Apportionment');
+              let y = sACounter.get('Rural');
+              sACounter.set('RHS & HOME Apportionment', x - row[3]);
+              sACounter.set('Rural', y - row[3]);
+            } else {
+              inputSheet.createTextFinder(rowItem[0]).findNext().offset(0,lastColInt-1).setValue('Skip H/T').setHorizontalAlignment('normal');
+            }
+          });
+        }
+      }
+    }
+  });
   setCounterValuesToSheet();
 };
 
@@ -337,23 +368,46 @@ function ruralOtherSort(){
   let otherValues = dataRangeValues.filter(item => item[26] != 'Fund');
   otherValues.forEach((row, i, arr) => {
     if (sACounter.get('Rural') >= 1) { //Checking if there is more than $1 in Rural Counter.
-      if (chkRrlHTisNeg(row) === false) { //false means there is more than $1 and Hsg type is not negative
+      if (chkRrlHTisNeg(row) === false) { //false means there is more than $1 and Hsg type is not negative or it is not a set-aside type
         chkRrlHTAndSetCounters(row);
         inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
         ss.getSheetByName('Funded Projects').appendRow(row);
         let x = sACounter.get('Rural');
         sACounter.set('Rural', x - row[3]);
       } else if (chkRrlHTisNeg(row) === true) { //true means there is less than $1 and Hsg type is negative
-        let count = i+1;
-        if(count === arr.length) { //Checking if the chkRrlHTisNeg function has reached the last item in the data set and funds if true
+        if(chkRestofData(row, inputSheet) === true) {
           chkRrlHTAndSetCounters(row);
           inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
           ss.getSheetByName('Funded Projects').appendRow(row);
           let x = sACounter.get('Rural');
           sACounter.set('Rural', x - row[3]);
-        } else {
-          chkRestofData(row, arr, i, inputSheet, 'Rural') //checks rest of data set and inputs "skip HT" if it finds project with a different Hsg type and same or higher score.
+        } else if (chkRestofData(row, inputSheet) === 'Fund H/T') {
+          let lastColInt = row.length;
+          inputSheet.createTextFinder(row[0]).findNext().offset(0,lastColInt-1).setValue('Skip H/T');
+          let newRangeValues = inputSheet.getDataRange().getValues();
+          let skipHTarr = newRangeValues.filter(item => item[lastColInt-1]==='Skip H/T');
+          skipHTarr.forEach(rowItem =>{
+            if(sACounter.get('Rural') >= 1){
+              chkRrlHTAndSetCounters(rowItem);
+              inputSheet.createTextFinder(rowItem[0]).findNext().offset(0, lastColInt-1).setValue('Fund skpdH/T').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
+              ss.getSheetByName('Funded Projects').appendRow(rowItem);
+              let x = sACounter.get('Rural');
+              sACounter.set('Rural', x - row[3]);
+            } else {
+              inputSheet.createTextFinder(rowItem[0]).findNext().offset(0,lastColInt-1).setValue('Skip H/T').setHorizontalAlignment('normal');
+            }
+          })
         }
+        // let count = i+1;
+        // if(count === arr.length) { //Checking if the chkRrlHTisNeg function has reached the last item in the data set and funds if true
+        //   chkRrlHTAndSetCounters(row);
+        //   inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
+        //   ss.getSheetByName('Funded Projects').appendRow(row);
+        //   let x = sACounter.get('Rural');
+        //   sACounter.set('Rural', x - row[3]);
+        // } else {
+        //   chkRestofData(row, arr, i, inputSheet, 'Rural') //checks rest of data set and inputs "skip HT" if it finds project with a different Hsg type and same or higher score.
+        // }
       }
     }
   })
@@ -404,49 +458,55 @@ function chkRrlHTAndSetCounters(dataRangeValue){
     setCounters('ruralHsgTyp',dataRangeValue[2],dataRangeValue[3]);
   }
 };
+
 /** Sub Function to be used in the Rural Sort to check rest of the rows. It evaluates if any following data row has point score which is at least equal to current data row and then it checks if the housing type is different. If true it posts 'Skip H/T' in the Fund column. 
- * @param {((string|number)[]} row - current data row that is being evaluated
+ * @param {((string|number)[])} row - current data row that is being evaluated
  * @param {((string|number)[][])} arr - array of data passed to function
  * @param {number} index - index position of the current data row that is being evaluated in the array
  * @param {Object} sheet - input sheet into which data will be entered
  * @param {string} sAName - name of the Rural set-aside
 */
-function chkRestofData(row, arr, index, sheet, sAName) {
-  let count = index+1
-  while (count < arr.length - 1) {
-    if (arr[count][6] >= row[6]) {
-      if (row[2] === "Seniors") {
-        if (arr[count][2] !== 'Seniors') {
-          sheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
-          return
+function chkRestofData(row, sheet) {
+  let index = sheet.createTextFinder(row[0]).findNext().getRow()-1;
+  let count = index+1;
+  let arrRow = sheet.getDataRange().getValues();
+  console.log(index)
+  while (count <= arrRow.length) {
+    if(count===arrRow.length){
+      return 'Fund H/T'; //Fund H/T here means the row being evaluated is the last one in the data set and hence can be funded.
+    } else if (arrRow[count][6] >= row[6]) {
+      if (arrRow[count][2] === "Seniors") {
+        if (row[2] !== 'Seniors') {
+          //sheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
+          return true;
         }
-      } else if (row[2] === 'Large Family' && row[14] === 'Yes') {
-        if (arr[count][2] !== 'Large Family' && arr[count][14] !== 'Yes') {
-          sheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
-          return
+      } else if (arrRow[count][2] === 'Large Family' && arrRow[count] === 'Yes') {
+        if (row[2] !== 'Large Family' && row[14] !== 'Yes') {
+          //sheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
+          return true;
         }
-      } else if (row[12] == 'Acquisition/Rehabilitation' || row[12] == 'Rehabilitation-Only') {
-        if (arr[count][12] == 'Acquisition/Rehabilitation' || arr[count][12] == 'Rehabilitation-Only') {
-          sheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
-          return
+      } else if (arrRow[count][12] == 'Acquisition/Rehabilitation' || arrRow[count][12] == 'Rehabilitation-Only') {
+        if (row[12] == 'Acquisition/Rehabilitation' || row[12] == 'Rehabilitation-Only') {
+          //sheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
+          return true;
         }
-      }
+      } 
     }
     count++
   }
-  chkRrlHTAndSetCounters(row);
-  sheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
-  if(sAName = 'Rural'){
-    ss.getSheetByName('Funded Projects').appendRow(row);
-    let x = sACounter.get('Rural');
-    sACounter.set('Rural', x - row[3]);
-  } else {
-    ss.getSheetByName('Funded Projects').appendRow(row);
-    let x = sACounter.get(sAName);
-    let y = sACounter.get('Rural');
-    sACounter.set(sAName, x - row[3]);
-    sACounter.set('Rural', y - row[3]);
-  }
+  // chkRrlHTAndSetCounters(row);
+  // sheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Fund').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
+  // if(sAName = 'Rural'){
+  //   ss.getSheetByName('Funded Projects').appendRow(row);
+  //   let x = sACounter.get('Rural');
+  //   sACounter.set('Rural', x - row[3]);
+  // } else {
+  //   ss.getSheetByName('Funded Projects').appendRow(row);
+  //   let x = sACounter.get(sAName);
+  //   let y = sACounter.get('Rural');
+  //   sACounter.set(sAName, x - row[3]);
+  //   sACounter.set('Rural', y - row[3]);
+  // }
 }
 
 function geoRegionSort(){
