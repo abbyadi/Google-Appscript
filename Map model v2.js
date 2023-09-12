@@ -482,10 +482,12 @@ function geoRegionSort(){
         }
       }
     }
-    dataRangeValues = inputSheet.getValues();
+    dataRangeValues = inputSheet.getDataRange().getValues();
     //setting the number of cycles to run (numCycles)
     let unfunded = dataRangeValues.filter(row => !row[lastCol-1]); // filtering number of projects that are unfunded
-    numCycles = unfunded.length;
+    if(numCycles < unfunded.length) {
+      numCycles = unfunded.length;
+    }
   }
   while (runCycle <= numCycles) {
     for (const element of fundDirArr) {
@@ -496,8 +498,8 @@ function geoRegionSort(){
       let numDealFunded = dataRangeValues[3][0];
       let dataRange = inputsheet.getDataRange();
       let dataRangeValues = dataRange.getValues();
-      if (runCycle === 0) { /**First Round of funding deals. Fund housing type even if negative if highest tiebreaker and first to get funded*/
-        if (dataRangeValues.length >= 6) { /**checks if there are any projects applying in the region*/
+      if (dataRangeValues.length >= 6) {
+        if (runCycle === 0) { /**First Round of funding deals. Fund housing type even if negative if highest tiebreaker and first to get funded*/
           if (!dataRangeValues[5][lastCol - 1]) { /**checks if first project in the region is not funded in a set-aside*/
             if (dataRangeValues[5][5] <= balanceAmt) {
               chkHTAndSetCounters(dataRangeValues[5]);
@@ -517,28 +519,35 @@ function geoRegionSort(){
               dataRangeValues = dataRange.getValues();
             }
           }
-        }
-      } else {
-          if(dataRangeValues.length >= 6) { /**checks if there are any projects applying in the region*/
-            let skip125Arr = dataRangeValues.filter(row => row[lastCol-1].includes('Skip 125'));
-            if (skip125Arr.length > 1) {
+        } else {
+          if (numDealFunded === runCycle) {
+            let skip125Arr = dataRangeValues.filter(row => row[lastCol - 1].includes('Skip 125'));
+            if (skip125Arr.length > 0) {
               let frstSkip125 = skip125Arr[0];
-              for(let i=6; i<dataRangeValues.length; i++) {
-                if(!dataRangeValues[i][lastCol-1].includes('Fund')) { //project is not funded in SA
-                  if(!dataRangeValues[i][7] >= 0.75*frstSkip125[7] || !dataRangeValues[i][6]>=frstSkip125[6]) { //project Tiebreaker is not 75% of 1st Skip 125 project TB or point score is not equal or greater than 1st Skip 125 project
-                    inputsheet.getRange(i + 1, inputSheet.getLastColumn()).setValue('Skip 75%TB').setHorizontalAlignment('normal');
+              for (let i = 6; i < dataRangeValues.length; i++) {
+                if (!dataRangeValues[i][lastCol - 1].includes('Fund')) { //project is not funded in SA
+                  if (!dataRangeValues[i][7] >= 0.75 * frstSkip125[7] || !dataRangeValues[i][6] >= frstSkip125[6]) { //project Tiebreaker is not 75% of 1st Skip 125 project TB or point score is not equal or greater than 1st Skip 125 project
+                    inputsheet.getRange(i + 1, inputsheet.getLastColumn()).setValue('Skip 75%TB').setHorizontalAlignment('normal');
                     dataRange = inputsheet.getDataRange();
                     dataRangeValues = dataRange.getValues();
                   } else {
-                    //Check housing type and fund as necessary
+                    //Check balance amount then housing type and fund as necessary
                   }
                 }
               }
             } else {
-              //Check housing type and fund as necessary
+              //Check balance amount then housing type and fund as necessary
+              fundGeo();
             }
           }
+        }
       }
+      function fundGeo () {
+        // ** break statements cannot jump function boundary **
+      }
+
+
+      //----- DELETE BELOW ONCE DONE ------
       if (dataRangeValues.length >= 6) { /**checks if there are any projects applying in the region*/
         if (dataRangeValues[3][0] == 0) { /**checks if this is the first project in the region */
           for (let i = 5; i < dataRangeValues.length; i++) { /**loop to go through each project in region*/
@@ -625,9 +634,12 @@ function geoRegionSort(){
           }
         }
       }
+      /** --- DELETE ABOVE ONCE Confirmed --- */
     }
     runCycle++;
   };
+
+  /** --- DELETE BELOW ONCE CONFIRMED */
   /**Second to Fifth go through to fund deals if balance remaining*/
   while(runCycle<=4){
     for(const element of fundDirArr){ /**loop to go through each Region*/
@@ -746,6 +758,7 @@ function geoRegionSort(){
     }
     runCycle++;
   }
+  /** --- DELETE ABOVE ONCE CONFIRMED --- */
 };
 
 /**Function to check if any other HT exists with equal point score before funding HT where counter in housing type goes negative. Mark as Skip/HT if so.*/
