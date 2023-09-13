@@ -466,7 +466,7 @@ function geoRegionSort(){
   }
   let runCycle = 0;
   let numCycles;
-  for(const element of fundDirArr){ /**loop to go through each Region*/
+  for(const element of fundDirArr){ /**loop to go through each Region and Set Sheet data and sort them*/
     setSheetandHeader(element);
     getSetSheetData(element);
     let inputSheet = ss.getSheetByName(element);
@@ -498,6 +498,7 @@ function geoRegionSort(){
       let numDealFunded = dataRangeValues[3][0];
       let dataRange = inputsheet.getDataRange();
       let dataRangeValues = dataRange.getValues();
+      let breakSwitch = 'off';
       if (dataRangeValues.length >= 6) {
         if (runCycle === 0) { /**First Round of funding deals. Fund housing type even if negative if highest tiebreaker and first to get funded*/
           if (!dataRangeValues[5][lastCol - 1]) { /**checks if first project in the region is not funded in a set-aside*/
@@ -514,7 +515,7 @@ function geoRegionSort(){
               dataRange = inputsheet.getDataRange();
               dataRangeValues = dataRange.getValues();
             } else {
-              inputsheet.getRange(5 + 1, inputsheet.getLastColumn()).setValue('Skip 125').setHorizontalAlignment('normal');
+              inputsheet.getRange(5 + 1, inputsheet.getLastColumn()).setValue('Skip 125').setHorizontalAlignment('normal');//TODO: Once Skip 125 gets set, how to cycle through remaining projects?
               dataRange = inputsheet.getDataRange();
               dataRangeValues = dataRange.getValues();
             }
@@ -525,25 +526,90 @@ function geoRegionSort(){
             if (skip125Arr.length > 0) {
               let frstSkip125 = skip125Arr[0];
               for (let i = 6; i < dataRangeValues.length; i++) {
+                breakSwitch = 'off'
                 if (!dataRangeValues[i][lastCol - 1].includes('Fund')) { //project is not funded in SA
                   if (!dataRangeValues[i][7] >= 0.75 * frstSkip125[7] || !dataRangeValues[i][6] >= frstSkip125[6]) { //project Tiebreaker is not 75% of 1st Skip 125 project TB or point score is not equal or greater than 1st Skip 125 project
                     inputsheet.getRange(i + 1, inputsheet.getLastColumn()).setValue('Skip 75%TB').setHorizontalAlignment('normal');
                     dataRange = inputsheet.getDataRange();
                     dataRangeValues = dataRange.getValues();
                   } else {
-                    //Check balance amount then housing type and fund as necessary
+                    fundGeo(i);
+                    if(breakSwitch === 'on'){
+                      break;
+                    }
                   }
                 }
               }
             } else {
               //Check balance amount then housing type and fund as necessary
-              fundGeo();
+              for (let i = 6; i < dataRangeValues.length; i++) { //starting from second project in region 
+                fundGeo(i);
+                if (breakSwitch === "on") {
+                  break;
+                }
+              }
             }
           }
         }
       }
-      function fundGeo () {
+      function fundGeo (currP) {
         // ** break statements cannot jump function boundary **
+        if (!dataRangeValues[currP][lastCol-1]) {
+          if(dataRangeValues[currP][5]<=balanceAmt){
+            if(regionCounter.get(element) > 0) { /**checks if region has run out of Credits.*/
+              if(chkHTisNeg(element, dataRangeValues[currP], currP, dataRangeValues) === false){
+                chkHTAndSetCounters(dataRangeValues[currP]);
+                inputsheet.getRange(currP+1,inputsheet.getLastColumn()).setValue('Fund').setHorizontalAlignment('normal');
+                inputsheet.getRange(currP+1,1,1,inputsheet.getLastColumn()).setBackground('#9bbb59');
+                ss.getSheetByName('Funded Projects').appendRow(dataRangeValues[currP]);
+                balanceAmt -= dataRangeValues[currP][5];
+                numDealFunded++
+                inputsheet.getRange(3,1).setValue(balanceAmt)
+                inputsheet.getRange(4,1).setValue(numDealFunded);
+                setCounterValuesToSheet();
+                dataRange = inputsheet.getDataRange();
+                dataRangeValues = dataRange.getValues();
+                breakSwitch = 'on';
+              } else if(chkHTisNeg(element,dataRangeValues[currP], currP, dataRangeValues) === true) {
+                inputsheet.getRange(currP+1,inputsheet.getLastColumn()).setValue('Skip H/T').setHorizontalAlignment('normal');
+                dataRange = inputsheet.getDataRange();
+                dataRangeValues = dataRange.getValues();
+              } else if(chkHTisNeg(element,dataRangeValues[currP], currP, dataRangeValues) === 'Fund H/T') {
+                dataRangeValues[currP][lastCol-1] = 'Skip H/T';
+                let skipHTarr = dataRangeValues.filter(row => row[lastCol-1]==='Skip H/T');
+                skipHTarr.forEach(item => {
+                  if(item[5]<=balanceAmt){
+                    if(regionCounter.get(element)>0) {
+                      chkHTAndSetCounters(item);
+                      inputsheet.createTextFinder(item[0]).findNext().offset(0,lastCol-1).setValue('Fund skpdH/T').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
+                      ss.getSheetByName('Funded Projects').appendRow(item);
+                      balanceAmt -= item[5];
+                      numDealFunded++
+                    } else {
+                      inputsheet.createTextFinder(item[0]).findNext().offset(0,lastCol-1).setValue('Skip Negative').setHorizontalAlignment('normal');
+                    }
+                  } else {
+                    inputsheet.createTextFinder(item[0]).findNext().offset(0,lastCol-1).setValue('Skip H/T').setHorizontalAlignment('normal');
+                  }
+                });
+                inputsheet.getRange(3,1).setValue(balanceAmt)
+                inputsheet.getRange(4,1).setValue(numDealFunded);
+                setCounterValuesToSheet();
+                dataRange = inputsheet.getDataRange();
+                dataRangeValues = dataRange.getValues();
+              }
+            }else {
+              inputsheet.getRange(currP+1,inputsheet.getLastColumn()).setValue('Skip Negative').setHorizontalAlignment('normal');
+              dataRange = inputsheet.getDataRange();
+              dataRangeValues = dataRange.getValues();
+            }
+          }else{
+            inputsheet.getRange(currP+1,inputsheet.getLastColumn()).setValue('Skip 125').setHorizontalAlignment('normal');
+            dataRange = inputsheet.getDataRange();
+            dataRangeValues = dataRange.getValues();
+  
+          }
+        }
       }
 
 
