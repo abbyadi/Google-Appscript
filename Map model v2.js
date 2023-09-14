@@ -484,7 +484,7 @@ function geoRegionSort(){
     }
     dataRangeValues = inputSheet.getDataRange().getValues();
     //setting the number of cycles to run (numCycles)
-    let unfunded = dataRangeValues.slice(5).filter(row => !row[lastCol-1]); // filtering number of projects that are unfunded
+    let unfunded = dataRangeValues.filter(row => !row[lastCol-1]); // filtering number of projects that are unfunded
     if(numCycles < unfunded.length) {
       numCycles = unfunded.length;
       console.log(numCycles)
