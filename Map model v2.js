@@ -257,11 +257,15 @@ function splNeedsSort(){
   fundSA('Special Needs');
 };
 
+let rrlShtSwtch = 'on' //switch to turn off setting sheet, Header information and project data
 /**Function to sort Rural Set-Aside for "Native-American" and "RHS & HOME" Projects  **/
 function ruralSort(){
-  setSheetandHeader('Rural');
-  getSetSheetData('Rural');
-  ss.getSheetByName('Funded Projects').appendRow(['', 'Rural']);
+  if (rrlShtSwtch === 'on') {
+    setSheetandHeader("Rural");
+    getSetSheetData("Rural");
+    ss.getSheetByName("Funded Projects").appendRow(["", "Rural"]);
+  }
+
   let inputSheet = ss.getSheetByName('Rural');
   let dataRange = inputSheet.getDataRange();
   inputSheet.unhideColumn(inputSheet.getRange('O1:O'));
@@ -331,8 +335,9 @@ function ruralOtherSort(){
         if(chkRestofData(row, inputSheet) === true) { //checks rest of data set and inputs "skip HT" if it finds project with a different Hsg type and same or higher score.
           if(row[2]==='Large Family' && row[14]==='Yes') {
             resetLFH() //TODO: code to change "High/Highest Opportunity Area" column to "Y/N" and deduct 5%-10% from TB and rerun ruralOther sort
+          } else {
+            inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
           }
-          inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
         } else if (chkRestofData(row, inputSheet) === 'Fund H/T') {
           let lastColInt = row.length;
           inputSheet.createTextFinder(row[0]).findNext().offset(0,lastColInt-1).setValue('Skip H/T');
@@ -405,8 +410,18 @@ function resetLFH(dataRow, sheet){
   let rowNum = sheet.createTextFinder(dataRow[0]).findNext().getRow();
   let lastCol = dataRow.length;
   let newTBScore = dataRow[9]-dataRow[lastCol-1];
+  let nativeAmRegEx = new RegExp("Native American", "i");
+  let sectionRegEx = new RegExp("Section", "i");
+  let homeRegex = new RegExp("HOME");
   sheet.getRange(rowNum,15).setValue('Yes/No');
   sheet.getRange(rowNum, 8).setValue(`${newTBScore}`);
+  sheet.getDataRange().offset(2,0).sort([{column: 7, ascending: false},{column: 8, ascending: false}]);
+  if(sectionRegEx.test(dataRow[8]) || nativeAmRegEx.test(dataRow[8] || homeRegex.test(dataRow[8]))) {
+    rrlShtSwtch = 'off';
+    ruralSort();
+  } else {
+    ruralOtherSort()
+  }
 }
 
 /**Function to check the Housing type in Rural Tab and deduct the amount from Credit Counter Map if function chkRrlHtisNeg does not return true;*/
