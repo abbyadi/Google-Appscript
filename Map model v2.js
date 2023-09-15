@@ -274,7 +274,7 @@ function ruralSort(){
   let lastCol = dataRange.getLastColumn();
     //Fund Native American Apportionment
   let nativeAmRegEx = new RegExp('Native American','i');
-  let nativeAmValues = dataRangeValues.filter(item => nativeAmRegEx.test(item[8] && !item[lastCol-1].includes('Fund'))); //Filtering for Native American  projects and is not funded
+  let nativeAmValues = dataRangeValues.filter(item => nativeAmRegEx.test(item[8] && !item[lastCol-1])); //Filtering for Native American  projects and is not funded or skipped
   nativeAmValues.forEach((row, i, arr) => { 
     if (sACounter.get('Native American') >= 1 && sACounter.get('Rural') >= 1) { //Checking if there is more than $1 in Native American credit counter and in Rural Counter.
       if (chkRrlHTisNeg(row) === false) { //false means there is more than $1 and Hsg type is not negative or it is not a set-aside type.
@@ -285,7 +285,7 @@ function ruralSort(){
         let y = sACounter.get('Rural');
         sACounter.set('Native American', x - row[3]);
         sACounter.set('Rural', y - row[3]);
-      } else if (chkRrlHTisNeg(row) === 'reset LFHg') {
+      } else if (chkRrlHTisNeg(row) === 'reset LFHg') { //Large Family High Resource HT is negative
         resetLFH() //TODO: code to change "High/Highest Opportunity Area" column to "Y/N" and deduct 5%-10% from TB and rerun rural sort RHS/Native sort
       } else if (chkRrlHTisNeg(row) === true) { //true means there is less than $1 and Hsg type is negative. 
         inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
@@ -295,7 +295,7 @@ function ruralSort(){
     //Fund RHS HOME Apportionment
   let sectionRegEx = new RegExp('Section','i');
   let homeRegex = new RegExp('HOME');
-  let rhsAmValues = dataRangeValues.filter(item => sectionRegEx.test(item[8]) || homeRegex.test(item[8] && !item[lastCol-1].includes('Fund'))); //Filtering for RHS and HOME  projects and is not funded
+  let rhsAmValues = dataRangeValues.filter(item => sectionRegEx.test(item[8]) || homeRegex.test(item[8] && !item[lastCol-1])); //Filtering for RHS and HOME  projects and is not funded or skipped
   rhsAmValues.forEach((row, i, arr) => {
     if (sACounter.get('RHS & HOME Apportionment') >= 1 && sACounter.get('Rural') >= 1) { //Checking if there is more than $1 in RHS & HOME credit counter and in Rural Counter.
       if (chkRrlHTisNeg(row) === false) { //false means there is more than $1 and Hsg type is not negative or it is not a set-aside type
@@ -306,7 +306,7 @@ function ruralSort(){
         let y = sACounter.get('Rural');
         sACounter.set('RHS & HOME Apportionment', x - row[3]);
         sACounter.set('Rural', y - row[3]);
-      } else if (chkRrlHTisNeg(row) === 'reset LFHg') {
+      } else if (chkRrlHTisNeg(row) === 'reset LFHg') { //Large Family High Resource HT is negative
         resetLFH() //TODO: code to change "High/Highest Opportunity Area" column to "Y/N" and deduct 5%-10% from TB and rerun rural sort RHS/Native sort
       } else if (chkRrlHTisNeg(row) === true) { //true means there is less than $1 and Hsg type is negative. 
         inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
@@ -321,8 +321,8 @@ function ruralOtherSort(){
   let inputSheet = ss.getSheetByName('Rural');
   let dataRange = inputSheet.getDataRange().offset(2,0);
   let dataRangeValues = dataRange.getValues();
-
-  let otherValues = dataRangeValues.filter(item => item[26] != 'Fund');
+  let lastCol = dataRange.getLastColumn();
+  let otherValues = dataRangeValues.filter(item => !item[26]);
   otherValues.forEach((row, i, arr) => {
     if (sACounter.get('Rural') >= 1) { //Checking if there is more than $1 in Rural Counter.
       if (chkRrlHTisNeg(row) === false) { //false means there is more than $1 and Hsg type is not negative or it is not a set-aside type
@@ -333,25 +333,24 @@ function ruralOtherSort(){
         sACounter.set('Rural', x - row[3]);
       } else if (chkRrlHTisNeg(row) === true) { //true means there is less than $1 and Hsg type is negative
         if(chkRestofData(row, inputSheet) === true) { //checks rest of data set and inputs "skip HT" if it finds project with a different Hsg type and same or higher score.
-          if(row[2]==='Large Family' && row[14]==='Yes') {
+          if(row[2]==='Large Family' && row[14]==='Yes') { // Checks Large Family HT in High/Highest Resource Area
             resetLFH() //TODO: code to change "High/Highest Opportunity Area" column to "Y/N" and deduct 5%-10% from TB and rerun ruralOther sort
           } else {
             inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip H/T').setHorizontalAlignment('normal');
           }
         } else if (chkRestofData(row, inputSheet) === 'Fund H/T') {
-          let lastColInt = row.length;
-          inputSheet.createTextFinder(row[0]).findNext().offset(0,lastColInt-1).setValue('Skip H/T');
+          inputSheet.createTextFinder(row[0]).findNext().offset(0,lastCol-1).setValue('Skip H/T');
           let newRangeValues = inputSheet.getDataRange().getValues();
-          let skipHTarr = newRangeValues.filter(item => item[lastColInt-1]==='Skip H/T');
+          let skipHTarr = newRangeValues.filter(item => item[lastCol-1]==='Skip H/T');
           skipHTarr.forEach(rowItem =>{
             if(sACounter.get('Rural') >= 1){
               chkRrlHTAndSetCounters(rowItem);
-              inputSheet.createTextFinder(rowItem[0]).findNext().offset(0, lastColInt-1).setValue('Fund skpdH/T').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
+              inputSheet.createTextFinder(rowItem[0]).findNext().offset(0, lastCol-1).setValue('Fund skpdH/T').setHorizontalAlignment('normal').getDataRegion(SpreadsheetApp.Dimension.COLUMNS).setBackground('#9bbb59');
               ss.getSheetByName('Funded Projects').appendRow(rowItem);
               let x = sACounter.get('Rural');
               sACounter.set('Rural', x - row[3]);
             } else {
-              inputSheet.createTextFinder(rowItem[0]).findNext().offset(0,lastColInt-1).setValue('Skip H/T').setHorizontalAlignment('normal');
+              inputSheet.createTextFinder(rowItem[0]).findNext().offset(0,lastCol-1).setValue('Skip H/T').setHorizontalAlignment('normal');
             }
           })
         }
@@ -409,7 +408,7 @@ function chkRrlHTisNeg(dataRangeValue){
 function resetLFH(dataRow, sheet){
   let rowNum = sheet.createTextFinder(dataRow[0]).findNext().getRow();
   let lastCol = dataRow.length;
-  let newTBScore = dataRow[9]-dataRow[lastCol-1];
+  let newTBScore = dataRow[7]-dataRow[lastCol-2];
   let nativeAmRegEx = new RegExp("Native American", "i");
   let sectionRegEx = new RegExp("Section", "i");
   let homeRegex = new RegExp("HOME");
