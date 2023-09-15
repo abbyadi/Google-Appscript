@@ -90,9 +90,9 @@ let sACounter = counter.setAside;
 let ruralCounter = counter.ruralHsgTyp;
 let regionCounter = counter.region;
 
-//Min Score
-let minScr = 93;
-let minNAScr = 80;
+//Minimum Score per CTCAC Guidance
+let minScr = 93; // All projects except Native American set-asides.
+let minNAScr = 80; // Score for Native American set-aside
 
 // Function to get raw data Values in Array Form
 function rawDataWrapper(){
@@ -386,7 +386,9 @@ function ruralOtherSort(){
         inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip MinScr').setHorizontalAlignment('normal');
       }
     } else {
-      inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip').setHorizontalAlignment('normal');
+      if(row[0]) {
+        inputSheet.createTextFinder(row[0]).findNext().offset(0, 26).setValue('Skip').setHorizontalAlignment('normal');
+      }
     }
   })
   setCounterValuesToSheet();
@@ -543,7 +545,7 @@ function geoRegionSort(){
     }
     dataRangeValues = inputSheet.getDataRange().getValues();
     //setting the number of cycles to run (numCycles)
-    let unfunded = dataRangeValues.filter(row => !row[lastCol-1]); // filtering number of projects that are unfunded
+    let unfunded = dataRangeValues.slice(5).filter(row => !row[lastCol-1]); // filtering number of projects that are unfunded
     if(numCycles < unfunded.length) {
       numCycles = unfunded.length;
       console.log(numCycles)
