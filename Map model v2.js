@@ -143,7 +143,7 @@ function getSetSheetData(sheetName){
     };
   } else {
     for(let j=0; j<rawDataValues.length; j++){
-      if(regEx.test(rawDataValues[j][8])){
+      if(regEx.test(rawDataValues[j][8]) && !rawDataValues[j][7].includes('Rural')){ //filters for projects that are in the geographic region and are not rural projects.
         arrRawDataToInput.push(rawDataValues[j]);
       } 
     };
