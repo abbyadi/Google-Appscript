@@ -585,28 +585,24 @@ function geoRegionSort(){
         } else {
           //TODO: Removed runCycle===numDealFunded check. Should it be reintroduced. Did not seem to provide much performance gain
           //TODO: Check w/ Laura: Once a project meets 75%TB conditions all following projects will be rejected under "skip 75%TB" per this correction. Previous code checked for one project above for condition.
-          let skip125Arr = dataRangeValues.filter(row => row[lastCol - 1].includes('Skip 125')); 
-          if (skip125Arr.length > 0) {
-            let frstSkip125 = skip125Arr[0];
-            for (let i = 6; i < dataRangeValues.length; i++) {
-              breakSwitch = 'off'
-              if (!dataRangeValues[i][lastCol - 1].includes('Fund')) { //project is not funded in SA
-                if (!dataRangeValues[i][7] >= 0.75 * frstSkip125[7] || !dataRangeValues[i][6] >= frstSkip125[6]) { //project Tiebreaker is not 75% of 1st Skip 125 project TB or point score is not equal or greater than 1st Skip 125 project
-                  inputsheet.getRange(i + 1, inputsheet.getLastColumn()).setValue('Skip 75%TB').setHorizontalAlignment('normal');
+          for (let i = 6; i < dataRangeValues.length; i++) {
+            breakSwitch = "off";
+            let skip125Arr = dataRangeValues.filter((row) => row[lastCol - 1].includes("Skip 125"));
+            if (skip125Arr.length > 0) {
+              let frstSkip125 = skip125Arr[0];
+              if (!dataRangeValues[i][lastCol - 1].includes("Fund")) { //project is not funded in SA
+                if (!dataRangeValues[i][7] >= 0.75*frstSkip125[7] || !dataRangeValues[i][6] >= frstSkip125[6]) {//project Tiebreaker is not 75% of 1st Skip 125 project TB or point score is not equal or greater than 1st Skip 125 project
+                  inputsheet.getRange(i + 1, inputsheet.getLastColumn()).setValue("Skip 75%TB").setHorizontalAlignment("normal");
                   dataRange = inputsheet.getDataRange();
                   dataRangeValues = dataRange.getValues();
                 } else {
                   fundGeo(i); //Fund current project at row i;
-                  if (breakSwitch === 'on') {
+                  if (breakSwitch === "on") {
                     break;
                   }
                 }
               }
-            }
-          } else {
-            //Check balance amount then housing type and fund as necessary
-            for (let i = 6; i < dataRangeValues.length; i++) { //starting from second project in region 
-              breakSwitch = 'off';
+            } else {
               fundGeo(i); //Fund current project at row i;
               if (breakSwitch === "on") {
                 break;
