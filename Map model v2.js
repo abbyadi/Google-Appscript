@@ -541,7 +541,7 @@ function geoRegionSort(){
       let creditAmt125Pct = dataRangeValues[1][0];
       let balanceAmt = dataRangeValues[2][0];
       let numDealFunded = dataRangeValues[3][0];
-      let breakSwitch = 'off';
+      let breakSwitch = 'off'; //Variable created to control fundGeo function. If breakswitch is turned 'on' in the fundGeo function the for loop to cycle through projects is ended.
       if (dataRangeValues.length >= 6) {
         if (runCycle === 0) { /**First Round of funding deals. Fund housing type even if negative if highest tiebreaker and first to get funded*/
           if (!dataRangeValues[5][lastCol - 1]) { /**checks if first project in the region is not funded in a set-aside*/
