@@ -49,15 +49,16 @@
 - The function checks if the project that has been passed to it as an argument passes or fails four test:
 
 ```js
-        if (!dataRangeValues[currP][lastCol-1]) { //Checks that Project is not Funded or Skipped in the Fund/Skip Column
-          if (dataRangeValues[currP][6] >= minScr) { //Project meets or exceeds min score.
-            if(dataRangeValues[currP][5]<=balanceAmt){
-              if(regionCounter.get(element) > 0) { /**checks if region has run out of Credits.*/
-                if (dataRangeValues[currP][6]>=dataRangeValues[currP-1][6]) {
+if (!dataRangeValues[currP][lastCol-1]) { //Checks that Project is not Funded or Skipped in the Fund/Skip Column
+  if (dataRangeValues[currP][6] >= minScr) { //Project meets or exceeds min score.
+    if(dataRangeValues[currP][5]<=balanceAmt){
+      if(regionCounter.get(element) > 0) { /**checks if region has run out of Credits.*/
+        if (dataRangeValues[currP][6]>=dataRangeValues[currP-1][6]) { // Checks if the point score of the current project being evaluated is greater than or equal to the prior project in the dataRangeValues Array
                     ...
-                }
-              }
-            }
-          }
         }
+      }
+    }
+  }
+}
 ```
+- 

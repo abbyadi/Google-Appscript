@@ -562,6 +562,14 @@ function geoRegionSort(){
               dataRange = inputsheet.getDataRange();
               dataRangeValues = dataRange.getValues();
             }
+          } else { // if not the first project in the region then..
+            for (let i=6; i<dataRangeValues.length; i++) { // Cycle through projects starting with the second project.
+              breakSwitch = 'off';
+              fundGeo(i); // Fund/Skip current project at row i;
+              if (breakSwitch === "on") {
+                break;
+              }
+            }
           }
         } else {
           //TODO: Removed runCycle===numDealFunded check. Should it be reintroduced. Did not seem to provide much performance gain
