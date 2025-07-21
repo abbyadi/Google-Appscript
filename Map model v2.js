@@ -287,11 +287,7 @@ function ruralSort(){
   let sectionRegEx = new RegExp("Section", "i");
   let homeRegex = new RegExp("HOME");
   let cdbgRegex = new RegExp("CDBG-DR");
-  let rhsAmValues = dataRangeValues.filter(
-    (item) =>
-      sectionRegEx.test(item[8]) ||
-      (homeRegex.test(item[8]) || cdbgRegex.test(item[8]) && !item[lastCol - 1])
-  ); //Filtering for RHS, HOME & CDBG projects and is not funded or skipped
+  let rhsAmValues = dataRangeValues.filter((item) => sectionRegEx.test(item[8]) || homeRegex.test(item[8]) || cdbgRegex.test(item[8]) && !item[lastCol - 1]); //Filtering for RHS, HOME & CDBG projects and is not funded or skipped
   loopRHS: for (const row of rhsAmValues) {
     if (
       sACounter.get("RHS & HOME Apportionment") >= 1 &&
@@ -613,13 +609,41 @@ function geoRegionSort(){
               dataRange = inputsheet.getDataRange();
               dataRangeValues = dataRange.getValues();
             } else {
-              inputsheet.getRange(5 + 1, inputsheet.getLastColumn()).setValue('Skip 125').setHorizontalAlignment('normal');
-              dataRange = inputsheet.getDataRange();
-              dataRangeValues = dataRange.getValues();
+              for (let i = 5; i < dataRangeValues.length; i++) { // Cycle through projects starting with the first project.
+                breakSwitch = 'off';
+                let skip125Arr = dataRangeValues.filter((row) => row[lastCol - 1] && row[lastCol - 1].includes("Skip 125"));
+                if (skip125Arr.length > 0) {
+                  let frstSkip125 = skip125Arr[0];
+                  if (!dataRangeValues[i][lastCol - 1]) { // Project is not already funded/skipped
+                    if (dataRangeValues[i][7] < 0.75 * frstSkip125[7] || dataRangeValues[i][6] < frstSkip125[6]) {
+                      inputsheet.getRange(i + 1, inputsheet.getLastColumn()).setValue('Skip 75%TB').setHorizontalAlignment('normal');
+                      dataRange = inputsheet.getDataRange();
+                      dataRangeValues = dataRange.getValues();
+                      continue; // Skip to next project instead of calling fundGeo
+                    }
+                  }
+                }
+                fundGeo(i); // Fund/Skip current project at row i;
+                if (breakSwitch === "on") {
+                  break;
+                }
+              }
             }
           } else { // if not the first project in the region then..
             for (let i=6; i<dataRangeValues.length; i++) { // Cycle through projects starting with the second project.
               breakSwitch = 'off';
+              let skip125Arr = dataRangeValues.filter((row) => row[lastCol - 1] && row[lastCol - 1].includes("Skip 125"));
+              if (skip125Arr.length > 0) {
+                let frstSkip125 = skip125Arr[0];
+                if (!dataRangeValues[i][lastCol - 1]) { // Project is not already funded/skipped
+                  if (dataRangeValues[i][7] < 0.75 * frstSkip125[7] || dataRangeValues[i][6] < frstSkip125[6]) {
+                    inputsheet.getRange(i + 1, inputsheet.getLastColumn()).setValue('Skip 75%TB').setHorizontalAlignment('normal');
+                    dataRange = inputsheet.getDataRange();
+                    dataRangeValues = dataRange.getValues();
+                    continue; // Skip to next project instead of calling fundGeo
+                  }
+                }
+              }
               fundGeo(i); // Fund/Skip current project at row i;
               if (breakSwitch === "on") {
                 break;
@@ -635,7 +659,7 @@ function geoRegionSort(){
             if (skip125Arr.length > 0) {
               let frstSkip125 = skip125Arr[0];
               if (!dataRangeValues[i][lastCol - 1].includes("Fund")) { //project is not funded in SA
-                if (!dataRangeValues[i][7] >= 0.75*frstSkip125[7] || !dataRangeValues[i][6] >= frstSkip125[6]) {//project Tiebreaker is not 75% of 1st Skip 125 project TB or point score is not equal or greater than 1st Skip 125 project
+                if (dataRangeValues[i][7] < 0.75*frstSkip125[7] || dataRangeValues[i][6] < frstSkip125[6]) {//project Tiebreaker is not 75% of 1st Skip 125 project TB or point score is not equal or greater than 1st Skip 125 project
                   inputsheet.getRange(i + 1, inputsheet.getLastColumn()).setValue("Skip 75%TB").setHorizontalAlignment("normal");
                   dataRange = inputsheet.getDataRange();
                   dataRangeValues = dataRange.getValues();
